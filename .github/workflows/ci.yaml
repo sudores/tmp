@@ -2,6 +2,9 @@ name: This
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   prepare:
@@ -34,6 +37,8 @@ jobs:
           path: ${{ matrix.jobname }}.log
 
   integration:
+    # Deploy stage was removed as it was doing pretty much same as integration.
+    # Could be returned in case
     runs-on: ubuntu-latest
     needs: run-jobs
     steps:
