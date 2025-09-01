@@ -37,6 +37,7 @@ jobs:
     steps:
       - name: Combine results
         run: |
+          echo '${{ toJSON(needs.run-jobs.outputs) }}'
           logs=$(echo '${{ toJSON(needs.run-jobs.outputs) }}' | jq -r '.[]."job-log"')
           echo "$logs" > combined.txt
           echo "Integration complete"
