@@ -19,37 +19,38 @@ jobs:
     runs-on: ubuntu-latest
     needs: prepare
     strategy:
+      fail-fast: true
       matrix:
         jobname: [JobA, JobB, JobC]
-    outputs:
-      job-log: ${{ steps.log.outputs.log }}
     steps:
       - name: Run ${{ matrix.jobname }}
-        id: log
         run: |
-          msg="${{ matrix.jobname }} running with RunID=${{ needs.prepare.outputs.run-id }}"
-          echo "$msg"
-          echo "log=$msg" >> $GITHUB_OUTPUT
+          echo "${{ matrix.jobname }} running with RunID=${{ needs.prepare.outputs.run-id }}" > ${{ matrix.jobname }}.log
+
+      - name: Upload logs for ${{ matrix.jobname }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.jobname }}-log
+          path: ${{ matrix.jobname }}.log
 
   integration:
     runs-on: ubuntu-latest
     needs: run-jobs
     steps:
-      - name: Combine results
+      - name: Download all job logs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-log"
+          merge-multiple: true
+
+      - name: Combine logs
         run: |
-          echo '${{ toJSON(needs.run-jobs.outputs) }}'
-          logs=$(echo '${{ toJSON(needs.run-jobs.outputs) }}' | jq -r '.[]."job-log"')
-          echo "$logs" > combined.txt
+          cat Job*.log > combined.txt
           echo "Integration complete"
           cat combined.txt
 
-  deploy:
-    # Was not quite sure if it will be better to leave it as separate job or move to integration.
-    # Left here for a while
-    runs-on: ubuntu-latest
-    needs: integration
-    steps:
-      - name: Deploy step
-        run: |
-          echo "Deploy step using combined results:"
-          cat combined.txt
+      - name: Upload combined log
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-log
+          path: combined.txt
